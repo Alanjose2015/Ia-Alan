@@ -1,2 +1,307 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Mi ChatGPT Personal</title><style>body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background-color:#212121;color:#ececf1;margin:0;display:flex;justify-content:center;align-items:center;height:100vh}.chat-container{width:100%;max-width:850px;height:92vh;background-color:#2f2f2f;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.4);display:flex;flex-direction:column;overflow:hidden;position:relative}.chat-header{background-color:#1a1a1a;padding:18px 24px;font-size:1.1rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #424242}.status-dot{height:10px;width:10px;background-color:#10a37f;border-radius:50%;display:inline-block;margin-right:8px}.token-lock-overlay{position:absolute;top:57px;left:0;width:100%;height:calc(100% - 57px);background-color:rgba(33,33,33,0.95);z-index:10;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px;box-sizing:border-box;text-align:center}.token-box{background:#2f2f2f;padding:30px;border-radius:12px;border:1px solid #424242;max-width:400px;width:100%}.token-box h3{margin-top:0;color:#10a37f}.token-box input{width:100%;background-color:#343541;border:1px solid #4d4d4d;border-radius:8px;color:white;padding:12px;font-size:0.95rem;outline:none;margin:15px 0;box-sizing:border-box}.token-box button,.chat-input-area button{background-color:#10a37f;color:white;border:none;border-radius:8px;padding:12px;font-size:1rem;font-weight:600;cursor:pointer;transition:background-color 0.2s}.token-box button:hover,.chat-input-area button:hover{background-color:#1a7f66}.logout-btn{background:none;border:1px solid #424242;color:#b3b3b3;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.8rem}.logout-btn:hover{background-color:#343541;color:white}.chat-messages{flex:1;padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth}.message{max-width:75%;padding:14px 18px;border-radius:12px;line-height:1.6;font-size:0.98rem;white-space:pre-line}.user-message{background-color:#343541;color:#f7f7f8;align-self:flex-end;border-bottom-right-radius:2px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.bot-message{background-color:#10a37f;color:white;align-self:flex-start;border-bottom-left-radius:2px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}.system-status{font-size:0.85rem;color:#b3b3b3;font-style:italic;align-self:flex-start}.chat-input-area{background-color:#1a1a1a;padding:20px;display:flex;gap:12px;border-top:1px solid #424242}.chat-input-area input{flex:1;background-color:#343541;border:1px solid #4d4d4d;border-radius:10px;color:white;padding:14px;font-size:1rem;outline:none;transition:border-color 0.2s}.chat-input-area input:focus{border-color:#10a37f}.chat-input-area button{border-radius:10px;padding:0 24px;transition:background-color 0.2s,transform 0.1s}.chat-input-area button:active{transform:scale(0.98)}</style></head><body><div class="chat-container"><div class="token-lock-overlay" id="tokenOverlay"><div class="token-box"><h3>Acceso Privado</h3><p style="font-size:0.9rem;color:#b3b3b3;margin:0">Esta interfaz es personal. Introduce tu Token para empezar a chatear.</p><input type="password" id="tokenInput" placeholder="Pega tu token secreto aquí..."><button onclick="saveToken()">Desbloquear interfaz</button></div></div><div class="chat-header"><div><span class="status-dot"></span>Mi Inteligencia Artificial</div><div style="display:flex;align-items:center;gap:15px"><span style="font-size:0.85rem;color:#8e8e93">Modelo: Llama-3</span><button class="logout-btn" id="logoutBtn" onclick="clearToken()" style="display:none">Quitar Token</button></div></div><div class="chat-messages" id="chatMessages"><div class="message bot-message">¡Hola! Soy tu ChatGPT personal de código abierto. Pregúntame lo que quieras.</div></div><div class="chat-input-area"><input type="text" id="userInput" placeholder="Escribe tu pregunta aquí..." onkeypress="handleKeyPress(event)"><button id="sendBtn" onclick="sendMessage()">Enviar</button></div></div><script>const MODEL_URL="https://huggingface.co";let API_TOKEN=localStorage.getItem('chat_api_token')||"";const tokenOverlay=document.getElementById('tokenOverlay'),logoutBtn=document.getElementById('logoutBtn'),chatMessages=document.getElementById('chatMessages'),userInput=document.getElementById('userInput'),sendBtn=document.getElementById('sendBtn');if(API_TOKEN){tokenOverlay.style.display='none';logoutBtn.style.display='block'}function saveToken(){const e=document.getElementById('tokenInput').value.trim();if(!e){alert("Por favor, ingresa un token válido.");return}localStorage.setItem('chat_api_token',e);API_TOKEN=e;tokenOverlay.style.display='none';logoutBtn.style.display='block';userInput.focus()}function clearToken(){if(confirm("¿Eliminar el token guardado?")){localStorage.removeItem('chat_api_token');API_TOKEN="";tokenOverlay.style.display='flex';logoutBtn.style.display='none';document.getElementById('tokenInput').value=""}}async function sendMessage(){const e=userInput.value.trim();if(e===''||!API_TOKEN)return;appendMessage(e,'user-message');userInput.value='';userInput.disabled=!0;sendBtn.disabled=!0;const t=appendMessage('Pensando...','system-status');try{const n=await fetch(MODEL_URL,{method:"POST",headers:{"Authorization":`Bearer ${API_TOKEN}`,"Content-Type":"application/json"},body:JSON.stringify({inputs:`<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nResponde siempre en español. ${e}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,parameters:{max_new_tokens:500,return_full_text:!1}})});if(n.status===401){document.getElementById(t).remove();appendMessage("Error 401: Token no válido o expirado. Quítalo desde el botón de arriba e introduce uno nuevo.",'bot-message');return}const r=await n.json();document.getElementById(t).remove();if(r&&r.generated_text){let a=r.generated_text.replace(/<\|eot_id\|>/g,'').trim();appendMessage(a,'bot-message')}else if(r&&r.error){appendMessage(`Error: ${r.error}`,'bot-message')}else{appendMessage("Error: No recibí una respuesta clara.",'bot-message')}}catch(o){console.error(o);if(document.getElementById(t))document.getElementById(t).remove();appendMessage("Error de conexión. Revisa tu token o el estado del modelo.",'bot-message')}finally{userInput.disabled=!1;sendBtn.disabled=!1;userInput.focus()}}function handleKeyPress(e){if(e.key==='Enter')sendMessage()}function appendMessage(e,t){const n=document.createElement('div'),r='msg-'+Date.now();return n.id=r,n.className=`message ${t}`,n.innerText=e,chatMessages.appendChild(n),chatMessages.scrollTop=chatMessages.scrollHeight,r}</script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi ChatGPT Personal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="token-lock-overlay" id="tokenOverlay">
+            <div class="token-box">
+                <h3>Acceso Privado</h3>
+                <p style="font-size: 0.9rem; color: #b3b3b3; margin: 0;">Esta interfaz es personal. Introduce tu Token para empezar a chatear.</p>
+                <input type="password" id="tokenInput" placeholder="Pega tu token secreto aquí...">
+                <button onclick="saveToken()">Desbloquear interfaz</button>
+            </div>
+        </div>
+
+        <div class="chat-header">
+            <div><span class="status-dot"></span>Mi Inteligencia Artificial</div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-size: 0.85rem; color: #8e8e93;">Modelo: Llama-3</span>
+                <button class="logout-btn" id="logoutBtn" onclick="clearToken()" style="display: none;">Quitar Token</button>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">¡Hola! Soy tu ChatGPT personal de código abierto. Pregúntame lo que quieras.</div>
+        </div>
+        
+        <div class="chat-input-area">
+            <input type="text" id="userInput" placeholder="Escribe tu pregunta aquí..." onkeypress="handleKeyPress(event)">
+            <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const MODEL_URL = "https://huggingface.co";
+        let API_TOKEN = localStorage.getItem('chat_api_token') || "";
+
+        const tokenOverlay = document.getElementById('tokenOverlay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        if (API_TOKEN) {
+            tokenOverlay.style.display = 'none';
+            logoutBtn.style.display = 'block';
+        }
+
+        function saveToken() {
+            const e = document.getElementById('tokenInput').value.trim();
+            if (!e) {
+                alert("Por favor, ingresa un token válido.");
+                return;
+            }
+            localStorage.setItem('chat_api_token', e);
+            API_TOKEN = e;
+            tokenOverlay.style.display = 'none';
+            logoutBtn.style.display = 'block';
+            userInput.focus();
+        }
+
+        function clearToken() {
+            if (confirm("¿Eliminar el token guardado?")) {
+                localStorage.removeItem('chat_api_token');
+                API_TOKEN = "";
+                tokenOverlay.style.display = 'flex';
+                logoutBtn.style.display = 'none';
+                document.getElementById('tokenInput').value = "";
+            }
+        }
+
+        async function sendMessage() {
+            const e = userInput.value.trim();
+            if (e === '' || !API_TOKEN) return;
+            appendMessage(e, 'user-message');
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            const t = appendMessage('Pensando...', 'system-status');
+            try {
+                const n = await fetch(MODEL_URL, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${API_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        inputs: `<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nResponde siempre en español. ${e}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,
+                        parameters: { max_new_tokens: 500, return_full_text: false }
+                    })
+                });
+                if (n.status === 401) {
+                    document.getElementById(t).remove();
+                    appendMessage("Error 401: Token inválido. Presiona 'Quitar Token' arriba e ingresa uno nuevo.", 'bot-message');
+                    return;
+                }
+                const r = await n.json();
+                document.getElementById(t).remove();
+                if (r && r[0] && r[0].generated_text) {
+                    let a = r[0].generated_text.replace(/<\|eot_id\|>/g, '').trim();
+                    appendMessage(a, 'bot-message');
+                } else if (r && r.error) {
+                    appendMessage(`Error: ${r.error}`, 'bot-message');
+                } else {
+                    appendMessage("Error: No recibí una respuesta clara.", 'bot-message');
+                }
+            } catch (o) {
+                console.error(o);
+                if (document.getElementById(t)) document.getElementById(t).remove();
+                appendMessage("Error de conexión. Revisa tu token o el estado del modelo.", 'bot-message');
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function appendMessage(e, t) {
+            const n = document.createElement('div'), r = 'msg-' + Date.now();
+            return n.id = r, n.className = `message ${t}`, n.innerText = e, chatMessages.appendChild(n), chatMessages.scrollTop = chatMessages.scrollHeight, r;
+        }
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #212121;
+    color: #ececf1;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.chat-container {
+    width: 100%;
+    max-width: 850px;
+    height: 92vh;
+    background-color: #2f2f2f;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+.chat-header {
+    background-color: #1a1a1a;
+    padding: 18px 24px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #424242;
+}
+.status-dot {
+    height: 10px;
+    width: 10px;
+    background-color: #10a37f;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+.token-lock-overlay {
+    position: absolute;
+    top: 57px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 57px);
+    background-color: rgba(33, 33, 33, 0.95);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+}
+.token-box {
+    background: #2f2f2f;
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid #424242;
+    max-width: 400px;
+    width: 100%;
+}
+.token-box h3 {
+    margin-top: 0;
+    color: #10a37f;
+}
+.token-box input {
+    width: 100%;
+    background-color: #343541;
+    border: 1px solid #4d4d4d;
+    border-radius: 8px;
+    color: white;
+    padding: 12px;
+    font-size: 0.95rem;
+    outline: none;
+    margin: 15px 0;
+    box-sizing: border-box;
+}
+.token-box button, .chat-input-area button {
+    background-color: #10a37f;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.token-box button:hover, .chat-input-area button:hover {
+    background-color: #1a7f66;
+}
+.logout-btn {
+    background: none;
+    border: 1px solid #424242;
+    color: #b3b3b3;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.logout-btn:hover {
+    background-color: #343541;
+    color: white;
+}
+.chat-messages {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+}
+.message {
+    max-width: 75%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    line-height: 1.6;
+    font-size: 0.98rem;
+    white-space: pre-line;
+}
+.user-message {
+    background-color: #343541;
+    color: #f7f7f8;
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.bot-message {
+    background-color: #10a37f;
+    color: white;
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.system-status {
+    font-size: 0.85rem;
+    color: #b3b3b3;
+    font-style: italic;
+    align-self: flex-start;
+}
+.chat-input-area {
+    background-color: #1a1a1a;
+    padding: 20px;
+    display: flex;
+    gap: 12px;
+    border-top: 1px solid #424242;
+}
+.chat-input-area input {
+    flex: 1;
+    background-color: #343541;
+    border: 1px solid #4d4d4d;
+    border-radius: 10px;
+    color: white;
+    padding: 14px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.chat-input-area input:focus {
+    border-color: #10a37f;
+}
+.chat-input-area button {
+    border-radius: 10px;
+    padding: 0 24px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+.chat-input-area button:active {
+    transform: scale(0.98);
+}
+    </script>
+</body>
+    </html>
     
